@@ -1,44 +1,56 @@
-import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
-import { Coffee } from './entities/coffee.entity';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from 'src/prisma.service';
+import { Coffee, Prisma } from '@prisma/client';
 
 @Injectable()
 export class CoffeesService {
-  private coffees: Coffee[] = [
-    {
-      id: 1,
-      name: 'Shipwreck Roast',
-      brand: 'Buddy Brew',
-      flavors: ['chocolate', 'vanilla']
-    }
-  ]
 
-  findAll() {
-    return this.coffees;
+  // use prisma client
+  constructor(private prisma: PrismaService) { }
+
+  async findAll(): Promise<Coffee[]> {
+    return this.prisma.coffee.findMany();
   }
 
-  findOne(id: string) {
-    const coffee = this.coffees.find(item => item.id === +id)
+  async findOne(coffeeWhereUnique: Prisma.CoffeeWhereUniqueInput) {
+    const coffee = await this.prisma.coffee.findUnique({
+      where: coffeeWhereUnique
+    })
+    // console.log(coffeeWhereUnique); // {id : 123}
+
+
     if (!coffee) {
-      throw new NotFoundException(`Coffee ${id} not found`)
+      throw new NotFoundException(`Coffee not found`)
     }
     return coffee
   }
 
-  create(createCoffeeDto: any) {
-    this.coffees.push(createCoffeeDto)
-    return createCoffeeDto
+  async create(data: Prisma.CoffeeCreateInput) {
+    return this.prisma.coffee.create({
+      data
+    })
   }
 
-  update(id: string, updateCoffeeDto: any) {
-    const existingCoffee = this.findOne(id);
-    if (existingCoffee) {
+  async update(params: {
+    where: Prisma.CoffeeWhereUniqueInput,
+    data: Prisma.CoffeeUpdateInput
+  }): Promise<Coffee> {
+    const { where, data } = params;
+    const coffee = await this.prisma.coffee.findUnique({ where })
+
+    if (!coffee) {
+      throw new NotFoundException(`Coffee Not Found`)
     }
+
+    return this.prisma.coffee.update({
+      data,
+      where
+    })
   }
 
-  remove(id: string) {
-    const coffeeIndex = this.coffees.findIndex(item => item.id === +id);
-    if (coffeeIndex >= 0) {
-      this.coffees.splice(coffeeIndex, 1)
-    }
+  async remove(where: Prisma.CoffeeWhereUniqueInput): Promise<Coffee> {
+    return this.prisma.coffee.delete({
+      where
+    })
   }
 }
