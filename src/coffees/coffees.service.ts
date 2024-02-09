@@ -1,23 +1,30 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'src/prisma.service';
 import { Coffee, Prisma } from '@prisma/client';
+import { DatabaseService } from 'src/database/database.service';
 
 @Injectable()
 export class CoffeesService {
 
   // use prisma client
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: DatabaseService) { }
+
+  async create(data: Prisma.CoffeeCreateInput): Promise<Coffee> {
+    return this.prisma.coffee.create({
+      data
+    })
+  }
 
   async findAll(): Promise<Coffee[]> {
     return this.prisma.coffee.findMany();
   }
 
-  async findOne(coffeeWhereUnique: Prisma.CoffeeWhereUniqueInput) {
+  async findOne(id: number): Promise<Coffee> {
     const coffee = await this.prisma.coffee.findUnique({
-      where: coffeeWhereUnique
+      where: {
+        id
+      }
     })
     // console.log(coffeeWhereUnique); // {id : 123}
-
 
     if (!coffee) {
       throw new NotFoundException(`Coffee not found`)
@@ -25,32 +32,34 @@ export class CoffeesService {
     return coffee
   }
 
-  async create(data: Prisma.CoffeeCreateInput) {
-    return this.prisma.coffee.create({
-      data
-    })
-  }
 
-  async update(params: {
-    where: Prisma.CoffeeWhereUniqueInput,
+  async update(
+    id: number,
     data: Prisma.CoffeeUpdateInput
-  }): Promise<Coffee> {
-    const { where, data } = params;
-    const coffee = await this.prisma.coffee.findUnique({ where })
+  ): Promise<Coffee> {
+    const coffee = await this.prisma.coffee.findUnique({
+      where: {
+        id
+      }
+    })
 
     if (!coffee) {
       throw new NotFoundException(`Coffee Not Found`)
     }
 
     return this.prisma.coffee.update({
-      data,
-      where
+      where: {
+        id
+      },
+      data
     })
   }
 
-  async remove(where: Prisma.CoffeeWhereUniqueInput): Promise<Coffee> {
+  async remove(id: number): Promise<Coffee> {
     return this.prisma.coffee.delete({
-      where
+      where: {
+        id
+      }
     })
   }
 }

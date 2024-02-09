@@ -1,7 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { CoffeesService } from './coffees.service';
-import { CreateCoffeeDto } from './dto/create-coffee.dto/create-coffee.dto';
-import { UpdateCoffeeDto } from './dto/update-coffee.dto/update-coffee.dto';
+import { Prisma } from '@prisma/client';
 
 @Controller('coffees')
 export class CoffeesController {
@@ -14,32 +13,24 @@ export class CoffeesController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: number) {
-    return this.coffeesService.findOne({
-      id
-    })
+  async findOne(@Param('id') id: string) {
+    return this.coffeesService.findOne(+id)
   }
 
   @Post()
-  // async create(@Body() createCoffeeDto: { name: string, brand: string, flavors: string[] }) {
-  async create(@Body() createCoffeeDto: CreateCoffeeDto) {
+  async create(@Body() createCoffeeDto: Prisma.CoffeeCreateInput) {
     return this.coffeesService.create(createCoffeeDto);
   }
 
   @Patch(':id')
-  async update(@Param('id') id: number, @Body() updateCoffeeDto: UpdateCoffeeDto) {
-    return this.coffeesService.update({
-      where: {
-        id
-      },
-      data: updateCoffeeDto
-    })
+  async update(
+    @Param('id') id: string,
+    @Body() updateCoffeeDto: Prisma.CoffeeUpdateInput) {
+    return this.coffeesService.update(+id, updateCoffeeDto)
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: number) {
-    return this.coffeesService.remove({
-      id
-    })
+  async remove(@Param('id') id: string) {
+    return this.coffeesService.remove(+id)
   }
 }
