@@ -14,5 +14,11 @@ model Coffee {
   id      Int      @id @default(autoincrement())
   name    String
   brand   String
-  flavors String[]
+  flavors Flavor[]
+}
+
+model Flavor {
+  id     Int      @id @default(autoincrement())
+  name   String
+  coffee Coffee[]
 }

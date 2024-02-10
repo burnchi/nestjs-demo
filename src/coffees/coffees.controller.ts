@@ -1,6 +1,7 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UsePipes, ValidationPipe } from '@nestjs/common';
 import { CoffeesService } from './coffees.service';
 import { Prisma } from '@prisma/client';
+import { PaginationQueryDto } from './dtos/pagination-query.dto';
 
 @Controller('coffees')
 export class CoffeesController {
@@ -8,8 +9,8 @@ export class CoffeesController {
   constructor(private readonly coffeesService: CoffeesService) { }
 
   @Get()
-  async findAll() {
-    return this.coffeesService.findAll()
+  async findAll(@Query() { offset, limit }: PaginationQueryDto) {
+    return this.coffeesService.findAll(offset, limit)
   }
 
   @Get(':id')
