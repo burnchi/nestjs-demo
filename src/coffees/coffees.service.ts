@@ -1,8 +1,11 @@
 import { Inject, Injectable, NotFoundException, Scope } from '@nestjs/common';
-import { Coffee, Prisma } from '@prisma/client';
 import { DatabaseService } from 'src/database/database.service';
 import { COFFEE_BRANDS } from './coffees.constants';
 import { ConfigService } from '@nestjs/config';
+import { FlavorEntity } from './entities/flavor.entity';
+import { CreateCoffeeDto } from './dtos/CreateCoffeeDto.dto';
+import { UpdateCoffeeDto } from './dtos/UpdateCoffeeDto.dto';
+import { CoffeeEntity } from './entities/coffee.entity';
 
 @Injectable()
 export class CoffeesService {
@@ -13,29 +16,44 @@ export class CoffeesService {
     @Inject(COFFEE_BRANDS) coffeeBrands: string[],
     private readonly configServer: ConfigService
   ) {
-    console.log(coffeeBrands);
-    console.log(this.configServer.get('DATABASE_URL'));
+    // console.log(coffeeBrands);
+    // console.log(this.configServer.get('DATABASE_URL'));
     // console.log(process.env.DATABASE_URL);
 
   }
 
-  async create(data: Prisma.CoffeeCreateInput): Promise<Coffee> {
+  async create(createCoffeeDto: CreateCoffeeDto): Promise<CoffeeEntity> {
+    const flavorsid = createCoffeeDto.flavors && (
+      await Promise.all(
+        createCoffeeDto.flavors.map(name => this.preloadFlavorByName(name))
+      )
+    )
+    // console.log(flavorsid); //if no flavor ,output: undefined
+
     return this.prisma.coffee.create({
-      data
+      data: {
+        ...createCoffeeDto,
+        flavors: {
+          connect: flavorsid
+        }
+      },
+      include: {
+        flavors: true
+      }
     })
   }
 
-  async findAll(offset?: number, limit?: number): Promise<Coffee[]> {
+  async findAll(offset?: number, limit?: number): Promise<CoffeeEntity[]> {
     return this.prisma.coffee.findMany({
       take: limit,
       skip: offset,
-      include: {
-        flavors: true
-      },
+      // include: {
+      //   flavors: true
+      // },
     });
   }
 
-  async findOne(id: number): Promise<Coffee> {
+  async findOne(id: number): Promise<CoffeeEntity> {
     const coffee = await this.prisma.coffee.findUnique({
       where: {
         id
@@ -55,8 +73,8 @@ export class CoffeesService {
 
   async update(
     id: number,
-    data: Prisma.CoffeeUpdateInput
-  ): Promise<Coffee> {
+    updateCoffeeDto: UpdateCoffeeDto
+  ): Promise<CoffeeEntity> {
     const coffee = await this.prisma.coffee.findUnique({
       where: {
         id
@@ -67,18 +85,55 @@ export class CoffeesService {
       throw new NotFoundException(`Coffee Not Found`)
     }
 
+    // cant throw error when no pass flavors parameter,map function error...
+    const flavors = updateCoffeeDto.flavors &&
+      (
+        await Promise.all(updateCoffeeDto.flavors.map(name => this.preloadFlavorByName(name)))
+      )
+
     return this.prisma.coffee.update({
       where: {
         id
       },
-      data
+      data: {
+        ...updateCoffeeDto,
+        flavors: {
+          connect: flavors
+        }
+      },
+      include: {
+        flavors: true
+      }
     })
   }
 
-  async remove(id: number): Promise<Coffee> {
+  async remove(id: number): Promise<CoffeeEntity> {
     return this.prisma.coffee.delete({
       where: {
         id
+      }
+    })
+  }
+
+  // check if exist flavor,if not, create a flavor entity
+  private async preloadFlavorByName(name: string): Promise<FlavorEntity> {
+    const existingFlavor = await this.prisma.flavor.findFirst({
+      where: {
+        name
+      },
+      select: {
+        id: true
+      }
+    })
+    if (existingFlavor) {
+      return existingFlavor
+    }
+    return this.prisma.flavor.create({
+      data: {
+        name
+      },
+      select: {
+        id: true
       }
     })
   }
